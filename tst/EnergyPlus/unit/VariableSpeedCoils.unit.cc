@@ -2973,7 +2973,6 @@ TEST_F(EnergyPlusFixture, VariableSpeedCoils_ContFanCycCoil_Test)
     // set coil inlet air flow rate to speed 1
     state->dataVariableSpeedCoils->VarSpeedCoil(DXCoilNum).AirMassFlowRate =
         state->dataVariableSpeedCoils->VarSpeedCoil(DXCoilNum).MSRatedAirMassFlowRate(1) * 0.1;
-    state->dataVariableSpeedCoils->LoadSideMassFlowRate = state->dataVariableSpeedCoils->VarSpeedCoil(DXCoilNum).AirMassFlowRate;
     state->dataLoopNodes->Node(state->dataVariableSpeedCoils->VarSpeedCoil(DXCoilNum).AirInletNodeNum).MassFlowRate =
         state->dataVariableSpeedCoils->VarSpeedCoil(DXCoilNum).AirMassFlowRate;
     VariableSpeedCoils::CalcVarSpeedCoilCooling(
@@ -2997,7 +2996,6 @@ TEST_F(EnergyPlusFixture, VariableSpeedCoils_ContFanCycCoil_Test)
     // set coil inlet air flow rate to speed 1 times PLR
     state->dataVariableSpeedCoils->VarSpeedCoil(DXCoilNum).AirMassFlowRate =
         state->dataVariableSpeedCoils->VarSpeedCoil(DXCoilNum).MSRatedAirMassFlowRate(1) * PartLoadFrac;
-    state->dataVariableSpeedCoils->LoadSideMassFlowRate = state->dataVariableSpeedCoils->VarSpeedCoil(DXCoilNum).AirMassFlowRate;
     state->dataLoopNodes->Node(state->dataVariableSpeedCoils->VarSpeedCoil(DXCoilNum).AirInletNodeNum).MassFlowRate =
         state->dataVariableSpeedCoils->VarSpeedCoil(DXCoilNum).AirMassFlowRate;
     // run the coil
