@@ -1414,6 +1414,8 @@ namespace SurfaceGeometry {
                 state.dataSurfaceGeometry->SurfaceTmp(CurNewSurf).CosAzim = std::cos(SurfWorldAz * DataGlobalConstants::DegToRadians);
                 state.dataSurfaceGeometry->SurfaceTmp(CurNewSurf).SinTilt = std::sin(SurfTilt * DataGlobalConstants::DegToRadians);
                 state.dataSurfaceGeometry->SurfaceTmp(CurNewSurf).CosTilt = std::cos(SurfTilt * DataGlobalConstants::DegToRadians);
+                state.dataSurfaceGeometry->SurfaceTmp(CurNewSurf).isVertical =
+                    isSurfaceVertical(state.dataSurfaceGeometry->SurfaceTmp(CurNewSurf).CosTilt);
                 // Outward normal unit vector (pointing away from room)
                 state.dataSurfaceGeometry->SurfaceTmp(CurNewSurf).OutNormVec =
                     state.dataSurfaceGeometry->SurfaceTmp(CurNewSurf).NewellSurfaceNormalVector;
@@ -4804,6 +4806,7 @@ namespace SurfaceGeometry {
         state.dataSurfaceGeometry->SurfaceTmp(SurfNum).CosAzim = CosSurfAzimuth;
         state.dataSurfaceGeometry->SurfaceTmp(SurfNum).SinTilt = SinSurfTilt;
         state.dataSurfaceGeometry->SurfaceTmp(SurfNum).CosTilt = CosSurfTilt;
+        state.dataSurfaceGeometry->SurfaceTmp(SurfNum).isVertical = isSurfaceVertical(state.dataSurfaceGeometry->SurfaceTmp(SurfNum).CosTilt);
         state.dataSurfaceGeometry->SurfaceTmp(SurfNum).ViewFactorGround = 0.5 * (1.0 - state.dataSurfaceGeometry->SurfaceTmp(SurfNum).CosTilt);
         // Outward normal unit vector (pointing away from room)
         state.dataSurfaceGeometry->SurfaceTmp(SurfNum).OutNormVec = state.dataSurfaceGeometry->SurfaceTmp(SurfNum).NewellSurfaceNormalVector;
@@ -6244,6 +6247,7 @@ namespace SurfaceGeometry {
         state.dataSurfaceGeometry->SurfaceTmp(SurfNum).CosAzim = CosSurfAzimuth;
         state.dataSurfaceGeometry->SurfaceTmp(SurfNum).SinTilt = SinSurfTilt;
         state.dataSurfaceGeometry->SurfaceTmp(SurfNum).CosTilt = CosSurfTilt;
+        state.dataSurfaceGeometry->SurfaceTmp(SurfNum).isVertical = isSurfaceVertical(state.dataSurfaceGeometry->SurfaceTmp(SurfNum).CosTilt);
         if (state.dataSurfaceGeometry->SurfaceTmp(SurfNum).Class != SurfaceClass::Window &&
             state.dataSurfaceGeometry->SurfaceTmp(SurfNum).Class != SurfaceClass::GlassDoor &&
             state.dataSurfaceGeometry->SurfaceTmp(SurfNum).Class != SurfaceClass::Door)
@@ -6818,6 +6822,8 @@ namespace SurfaceGeometry {
                             std::sin(state.dataSurfaceGeometry->SurfaceTmp(SurfNum).Azimuth * DataGlobalConstants::DegToRadians);
                         state.dataSurfaceGeometry->SurfaceTmp(SurfNum).CosTilt =
                             std::cos(state.dataSurfaceGeometry->SurfaceTmp(SurfNum).Tilt * DataGlobalConstants::DegToRadians);
+                        state.dataSurfaceGeometry->SurfaceTmp(SurfNum).isVertical =
+                            isSurfaceVertical(state.dataSurfaceGeometry->SurfaceTmp(SurfNum).CosTilt);
                         state.dataSurfaceGeometry->SurfaceTmp(SurfNum).SinTilt =
                             std::sin(state.dataSurfaceGeometry->SurfaceTmp(SurfNum).Tilt * DataGlobalConstants::DegToRadians);
 
@@ -6932,6 +6938,8 @@ namespace SurfaceGeometry {
                             std::sin(state.dataSurfaceGeometry->SurfaceTmp(SurfNum).Azimuth * DataGlobalConstants::DegToRadians);
                         state.dataSurfaceGeometry->SurfaceTmp(SurfNum).CosTilt =
                             std::cos(state.dataSurfaceGeometry->SurfaceTmp(SurfNum).Tilt * DataGlobalConstants::DegToRadians);
+                        state.dataSurfaceGeometry->SurfaceTmp(SurfNum).isVertical =
+                            isSurfaceVertical(state.dataSurfaceGeometry->SurfaceTmp(SurfNum).CosTilt);
                         state.dataSurfaceGeometry->SurfaceTmp(SurfNum).SinTilt =
                             std::sin(state.dataSurfaceGeometry->SurfaceTmp(SurfNum).Tilt * DataGlobalConstants::DegToRadians);
 
@@ -7213,6 +7221,7 @@ namespace SurfaceGeometry {
                     state.dataSurfaceGeometry->SurfaceTmp(SurfNum).ConvOrientation =
                         ConvectionCoefficients::GetSurfConvOrientation(state.dataSurfaceGeometry->SurfaceTmp(SurfNum).Tilt);
                     state.dataSurfaceGeometry->SurfaceTmp(SurfNum).CosTilt = 0.0; // Tuned Was std::cos( 90.0 * DegToRadians )
+                    state.dataSurfaceGeometry->SurfaceTmp(SurfNum).isVertical = true;
                     state.dataSurfaceGeometry->SurfaceTmp(SurfNum).SinTilt = 1.0; // Tuned Was std::sin( 90.0 * DegToRadians )
                     state.dataSurfaceGeometry->SurfaceTmp(SurfNum).Azimuth = 0.0;
                     state.dataSurfaceGeometry->SurfaceTmp(SurfNum).CosAzim = 1.0; // Tuned Was std::cos( 0.0 )
@@ -9286,6 +9295,7 @@ namespace SurfaceGeometry {
             state.dataSurfaceGeometry->SurfaceTmp(SurfNum).CosAzim = std::cos(SurfWorldAz * DataGlobalConstants::DegToRadians);
             state.dataSurfaceGeometry->SurfaceTmp(SurfNum).SinTilt = std::sin(SurfTilt * DataGlobalConstants::DegToRadians);
             state.dataSurfaceGeometry->SurfaceTmp(SurfNum).CosTilt = std::cos(SurfTilt * DataGlobalConstants::DegToRadians);
+            state.dataSurfaceGeometry->SurfaceTmp(SurfNum).isVertical = isSurfaceVertical(state.dataSurfaceGeometry->SurfaceTmp(SurfNum).CosTilt);
             if (state.dataSurfaceGeometry->SurfaceTmp(SurfNum).ViewFactorGround == DataGlobalConstants::AutoCalculate) {
                 state.dataSurfaceGeometry->SurfaceTmp(SurfNum).ViewFactorGround =
                     0.5 * (1.0 - state.dataSurfaceGeometry->SurfaceTmp(SurfNum).CosTilt);
@@ -9533,6 +9543,7 @@ namespace SurfaceGeometry {
             state.dataSurfaceGeometry->SurfaceTmp(SurfNum).CosAzim = std::cos(SurfWorldAz * DataGlobalConstants::DegToRadians);
             state.dataSurfaceGeometry->SurfaceTmp(SurfNum).SinTilt = std::sin(SurfTilt * DataGlobalConstants::DegToRadians);
             state.dataSurfaceGeometry->SurfaceTmp(SurfNum).CosTilt = std::cos(SurfTilt * DataGlobalConstants::DegToRadians);
+            state.dataSurfaceGeometry->SurfaceTmp(SurfNum).isVertical = isSurfaceVertical(state.dataSurfaceGeometry->SurfaceTmp(SurfNum).CosTilt);
             // Outward normal unit vector (pointing away from room)
             state.dataSurfaceGeometry->SurfaceTmp(SurfNum).OutNormVec = state.dataSurfaceGeometry->SurfaceTmp(SurfNum).NewellSurfaceNormalVector;
             for (n = 1; n <= 3; ++n) {
@@ -14086,6 +14097,8 @@ namespace SurfaceGeometry {
         state.dataSurfaceGeometry->SurfaceTmp(state.dataSurface->TotSurfaces).CosAzim = state.dataSurfaceGeometry->SurfaceTmp(SurfNum).CosAzim;
         state.dataSurfaceGeometry->SurfaceTmp(state.dataSurface->TotSurfaces).SinTilt = state.dataSurfaceGeometry->SurfaceTmp(SurfNum).SinTilt;
         state.dataSurfaceGeometry->SurfaceTmp(state.dataSurface->TotSurfaces).CosTilt = state.dataSurfaceGeometry->SurfaceTmp(SurfNum).CosTilt;
+        state.dataSurfaceGeometry->SurfaceTmp(state.dataSurface->TotSurfaces).isVertical =
+            isSurfaceVertical(state.dataSurfaceGeometry->SurfaceTmp(state.dataSurface->TotSurfaces).CosTilt);
         // Outward normal unit vector (pointing away from room)
         state.dataSurfaceGeometry->SurfaceTmp(state.dataSurface->TotSurfaces).Centroid = state.dataSurfaceGeometry->SurfaceTmp(SurfNum).Centroid;
         state.dataSurfaceGeometry->SurfaceTmp(state.dataSurface->TotSurfaces).lcsx = state.dataSurfaceGeometry->SurfaceTmp(SurfNum).lcsx;

@@ -674,6 +674,7 @@ namespace DataSurfaces {
         Real64 CosAzim;                   // Cosine of surface azimuth angle
         Real64 SinTilt;                   // Sine of surface tilt angle
         Real64 CosTilt;                   // Cosine of surface tilt angle
+        bool isVertical;                  // True if surface is "vertical" (i.e., CosTilt very small)
         bool IsConvex;                    // true if the surface is convex.
         bool IsDegenerate;                // true if the surface is degenerate.
         bool VerticesProcessed;           // true if vertices have been processed (only used for base surfaces)
@@ -761,8 +762,8 @@ namespace DataSurfaces {
               Sides(0), Area(0.0), GrossArea(0.0), NetAreaShadowCalc(0.0), Perimeter(0.0), Azimuth(0.0), Height(0.0), Reveal(0.0), Tilt(0.0),
               Width(0.0), shapeCat(ShapeCat::Invalid), plane(0.0, 0.0, 0.0, 0.0), Centroid(0.0, 0.0, 0.0), lcsx(0.0, 0.0, 0.0), lcsy(0.0, 0.0, 0.0),
               lcsz(0.0, 0.0, 0.0), NewellAreaVector(0.0, 0.0, 0.0), NewellSurfaceNormalVector(0.0, 0.0, 0.0), OutNormVec(3, 0.0), SinAzim(0.0),
-              CosAzim(0.0), SinTilt(0.0), CosTilt(0.0), IsConvex(true), IsDegenerate(false), VerticesProcessed(false), XShift(0.0), YShift(0.0),
-              HeatTransSurf(false), OutsideHeatSourceTermSchedule(0), InsideHeatSourceTermSchedule(0),
+              CosAzim(0.0), SinTilt(0.0), CosTilt(0.0), isVertical(false), IsConvex(true), IsDegenerate(false), VerticesProcessed(false), XShift(0.0),
+              YShift(0.0), HeatTransSurf(false), OutsideHeatSourceTermSchedule(0), InsideHeatSourceTermSchedule(0),
               HeatTransferAlgorithm(HeatTransferModel::Invalid), BaseSurf(0), NumSubSurfaces(0), Zone(0), spaceNum(0), ExtBoundCond(0),
               ExtSolar(false), ExtWind(false), ViewFactorGround(0.0), ViewFactorSky(0.0), ViewFactorGroundIR(0.0), ViewFactorSkyIR(0.0), OSCPtr(0),
               OSCMPtr(0), MirroredSurf(false), IsShadowing(false), IsShadowPossibleObstruction(false), SchedShadowSurfIndex(0), IsTransparent(false),
@@ -1390,6 +1391,8 @@ namespace DataSurfaces {
     Real64 AbsFrontSide(EnergyPlusData &state, int SurfNum);
 
     Real64 AbsBackSide(EnergyPlusData &state, int SurfNum);
+
+    bool isSurfaceVertical(Real64 surfCosTilt);
 
     std::string cSurfaceClass(SurfaceClass ClassNo);
 

@@ -562,7 +562,7 @@ void InitExteriorConvectionCoeff(EnergyPlusData &state,
                     [=](double Tsurf, double Tamb, double hfTerm, double, double cosTilt) -> double {
                     Real64 Ts = Tsurf;
                     if (HMovInsul > 0.0) Ts = (HMovInsul * Tsurf + hfTerm * Tamb) / (HMovInsul + hfTerm);
-                    return CalcASHRAETARPNatural(Ts, Tamb, cosTilt) + hfTerm;
+                    return CalcASHRAETARPNatural(Ts, Tamb, cosTilt, Surface(SurfNum).isVertical) + hfTerm;
                 };
             } else {
                 if (Surface(BaseSurf).GrossArea != 0.0 && Surface(BaseSurf).Height != 0.0) {
@@ -579,7 +579,7 @@ void InitExteriorConvectionCoeff(EnergyPlusData &state,
                 }
 
                 if (HMovInsul > 0.0) TSurf = (HMovInsul * TSurf + Hf * TAir) / (HMovInsul + Hf);
-                Hn = CalcASHRAETARPNatural(TSurf, TAir, Surface(SurfNum).CosTilt);
+                Hn = CalcASHRAETARPNatural(TSurf, TAir, Surface(SurfNum).CosTilt, Surface(SurfNum).isVertical);
                 HExt = Hn + Hf;
             }
             break;
@@ -628,27 +628,27 @@ void InitExteriorConvectionCoeff(EnergyPlusData &state,
                 }
                 state.dataSurfaceGeometry->kivaManager.surfaceConvMap[SurfNum].out =
                     [=](double Tsurf, double Tamb, double hfTerm, double, double cosTilt) -> double {
-                    Real64 Hf = CalcDOE2Forced(Tsurf, Tamb, cosTilt, hfTerm, Roughness);
+                    Real64 Hf = CalcDOE2Forced(Tsurf, Tamb, cosTilt, hfTerm, Roughness, Surface(SurfNum).isVertical);
 
                     Real64 Ts = Tsurf;
                     if (HMovInsul > 0.0) {
                         Ts = (HMovInsul * TSurf + Hf * Tamb) / (HMovInsul + Hf);
                     }
 
-                    Real64 Hn = CalcASHRAETARPNatural(Ts, Tamb, cosTilt);
+                    Real64 Hn = CalcASHRAETARPNatural(Ts, Tamb, cosTilt, Surface(SurfNum).isVertical);
                     return Hn + Hf;
                 };
             } else {
                 if (Windward(Surface(SurfNum).CosTilt, Surface(SurfNum).Azimuth, SurfWindDir)) {
-                    Hf = CalcDOE2Windward(TSurf, TAir, Surface(SurfNum).CosTilt, SurfWindSpeed, Roughness);
+                    Hf = CalcDOE2Windward(TSurf, TAir, Surface(SurfNum).CosTilt, SurfWindSpeed, Roughness, Surface(SurfNum).isVertical);
                 } else { // leeward
-                    Hf = CalcDOE2Leeward(TSurf, TAir, Surface(SurfNum).CosTilt, SurfWindSpeed, Roughness);
+                    Hf = CalcDOE2Leeward(TSurf, TAir, Surface(SurfNum).CosTilt, SurfWindSpeed, Roughness, Surface(SurfNum).isVertical);
                 }
                 if (HMovInsul > 0.0) {
                     TSurf = (HMovInsul * TSurf + Hf * TAir) / (HMovInsul + Hf);
                 }
 
-                Hn = CalcASHRAETARPNatural(TSurf, TAir, Surface(SurfNum).CosTilt);
+                Hn = CalcASHRAETARPNatural(TSurf, TAir, Surface(SurfNum).CosTilt, Surface(SurfNum).isVertical);
                 // Better if there was iteration for movable insulation?
 
                 HExt = Hn + Hf;
@@ -3114,7 +3114,7 @@ void CalcASHRAESimpleIntConvCoeff(EnergyPlusData &state,
     state.dataHeatBalSurf->SurfHConvInt(SurfNum) = max(state.dataHeatBalSurf->SurfHConvInt(SurfNum), state.dataHeatBal->LowHConvLimit);
 }
 
-Real64 CalcASHRAETARPNatural(Real64 const Tsurf, Real64 const Tamb, Real64 const cosTilt)
+Real64 CalcASHRAETARPNatural(Real64 const Tsurf, Real64 const Tamb, Real64 const cosTilt, bool isSurfVertical)
 {
     // SUBROUTINE INFORMATION:
     //       AUTHOR         Rick Strand
@@ -3149,7 +3149,7 @@ Real64 CalcASHRAETARPNatural(Real64 const Tsurf, Real64 const Tamb, Real64 const
 
     // Set HConvIn using the proper correlation based on DeltaTemp and Surface (Cosine Tilt)
 
-    if ((DeltaTemp == 0.0) || (cosTilt == 0.0)) { // Vertical Surface
+    if (isSurfVertical) { // Vertical Surface
 
         return CalcASHRAEVerticalWall(DeltaTemp);
 
@@ -3157,7 +3157,7 @@ Real64 CalcASHRAETARPNatural(Real64 const Tsurf, Real64 const Tamb, Real64 const
 
         return CalcWaltonUnstableHorizontalOrTilt(DeltaTemp, cosTilt);
 
-    } else // if (((DeltaTemp > 0.0) && (cosTilt < 0.0)) || ((DeltaTemp < 0.0) && (cosTilt > 0.0)))
+    } else // if (((DeltaTemp >= 0.0) && (cosTilt <= 0.0)) || ((DeltaTemp <= 0.0) && (cosTilt >= 0.0)))
     {      // Reduced Convection
 
         return CalcWaltonStableHorizontalOrTilt(DeltaTemp, cosTilt);
@@ -3174,11 +3174,15 @@ void CalcASHRAEDetailedIntConvCoeff(EnergyPlusData &state,
     auto &Surface(state.dataSurface->Surface);
     if (Surface(SurfNum).ExtBoundCond == DataSurfaces::KivaFoundation) {
         state.dataSurfaceGeometry->kivaManager.surfaceConvMap[SurfNum].in = [](double Tsurf, double Tamb, double, double, double cosTilt) -> double {
-            return CalcASHRAETARPNatural(Tsurf, Tamb, cosTilt);
+            bool isSurfaceVertical = EnergyPlus::DataSurfaces::isSurfaceVertical(cosTilt);
+            return CalcASHRAETARPNatural(Tsurf, Tamb, cosTilt, isSurfaceVertical);
         };
     } else {
-        state.dataHeatBalSurf->SurfHConvInt(SurfNum) = CalcASHRAETARPNatural(
-            SurfaceTemperature, ZoneMeanAirTemperature, -Surface(SurfNum).CosTilt); // negative CosTilt because CosTilt is relative to exterior
+        state.dataHeatBalSurf->SurfHConvInt(SurfNum) =
+            CalcASHRAETARPNatural(SurfaceTemperature,
+                                  ZoneMeanAirTemperature,
+                                  -Surface(SurfNum).CosTilt,
+                                  Surface(SurfNum).isVertical); // negative CosTilt because CosTilt is relative to exterior
     }
 
     // Establish some lower limit to avoid a zero convection coefficient (and potential divide by zero problems)
@@ -3234,7 +3238,8 @@ void CalcDetailedHcInForDVModel(EnergyPlusData &state,
             } else {
                 HcIn(SurfNum) = CalcASHRAETARPNatural(SurfaceTemperatures(SurfNum),
                                                       TAirConv,
-                                                      -Surface(SurfNum).CosTilt); // negative CosTilt because CosTilt is relative to exterior
+                                                      -Surface(SurfNum).CosTilt,
+                                                      Surface(SurfNum).isVertical); // negative CosTilt because CosTilt is relative to exterior
             }
 
         } else if (state.dataRoomAirMod->AirModel(Surface(SurfNum).Zone).AirModelType == DataRoomAirModel::RoomAirModel::UCSDCV) {
@@ -3249,7 +3254,8 @@ void CalcDetailedHcInForDVModel(EnergyPlusData &state,
             } else {
                 HcIn(SurfNum) = CalcASHRAETARPNatural(SurfaceTemperatures(SurfNum),
                                                       TAirConv,
-                                                      -Surface(SurfNum).CosTilt); // negative CosTilt because CosTilt is relative to exterior
+                                                      -Surface(SurfNum).CosTilt,
+                                                      Surface(SurfNum).isVertical); // negative CosTilt because CosTilt is relative to exterior
                 HcIn(SurfNum) = std::pow(std::pow(HcIn(SurfNum), 3.2) + std::pow(Hf, 3.2), 1.0 / 3.2);
             }
         }
@@ -3366,7 +3372,8 @@ Real64 CalcCeilingDiffuserIntConvCoeff(EnergyPlusData &state,
                                        Real64 const cosTilt,
                                        Real64 const humRat,
                                        Real64 const height,
-                                       bool const isWindow)
+                                       bool const isWindow,
+                                       bool const isVertical)
 {
     // SUBROUTINE INFORMATION:
     //       AUTHOR         Rick Strand
@@ -3400,11 +3407,11 @@ Real64 CalcCeilingDiffuserIntConvCoeff(EnergyPlusData &state,
     static const Real64 cos45(sqrt(2.) / 2.0);
 
     if (cosTilt < -cos45) {
-        return CalcFisherPedersenCeilDiffuserFloor(state, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow); // Floor correlation
+        return CalcFisherPedersenCeilDiffuserFloor(state, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow, isVertical); // Floor correlation
     } else if (cosTilt > cos45) {
-        return CalcFisherPedersenCeilDiffuserCeiling(state, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow); // Ceiling correlation
+        return CalcFisherPedersenCeilDiffuserCeiling(state, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow, isVertical); // Ceiling correlation
     } else {
-        return CalcFisherPedersenCeilDiffuserWalls(state, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow); // Wall correlation
+        return CalcFisherPedersenCeilDiffuserWalls(state, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow, isVertical); // Wall correlation
     }
 }
 
@@ -3424,9 +3431,10 @@ void CalcCeilingDiffuserIntConvCoeff(EnergyPlusData &state,
         if (Surface(SurfNum).ExtBoundCond == DataSurfaces::KivaFoundation) {
             Real64 height = state.dataSurface->Surface(SurfNum).Height;
             bool isWindow = state.dataConstruction->Construct(state.dataSurface->Surface(SurfNum).Construction).TypeIsWindow;
+            bool isVertical = Surface(SurfNum).isVertical;
             state.dataSurfaceGeometry->kivaManager.surfaceConvMap[SurfNum].in =
                 [=, &state](double Tsurf, double Tamb, double, double, double cosTilt) -> double {
-                return CalcCeilingDiffuserIntConvCoeff(state, ACH, Tsurf, Tamb, cosTilt, AirHumRat, height, isWindow);
+                return CalcCeilingDiffuserIntConvCoeff(state, ACH, Tsurf, Tamb, cosTilt, AirHumRat, height, isWindow, isVertical);
             };
         } else {
             state.dataHeatBalSurf->SurfHConvInt(SurfNum) =
@@ -3437,7 +3445,8 @@ void CalcCeilingDiffuserIntConvCoeff(EnergyPlusData &state,
                                                 Surface(SurfNum).CosTilt,
                                                 AirHumRat,
                                                 Surface(SurfNum).Height,
-                                                state.dataConstruction->Construct(Surface(SurfNum).Construction).TypeIsWindow);
+                                                state.dataConstruction->Construct(Surface(SurfNum).Construction).TypeIsWindow,
+                                                Surface(SurfNum).isVertical);
             // Establish some lower limit to avoid a zero convection coefficient (and potential divide by zero problems)
             if (state.dataHeatBalSurf->SurfHConvInt(SurfNum) < state.dataHeatBal->LowHConvLimit)
                 state.dataHeatBalSurf->SurfHConvInt(SurfNum) = state.dataHeatBal->LowHConvLimit;
@@ -4875,7 +4884,8 @@ void EvaluateIntHcModels(EnergyPlusData &state,
         if (Surface(SurfNum).ExtBoundCond == DataSurfaces::KivaFoundation) {
 
             HnFn = [=, &state](double Tsurf, double Tamb, double, double, double cosTilt) -> double {
-                return CalcFisherPedersenCeilDiffuserFloor(state, AirChangeRate, Tsurf, Tamb, cosTilt, AirHumRat, Surface(SurfNum).Height);
+                return CalcFisherPedersenCeilDiffuserFloor(
+                    state, AirChangeRate, Tsurf, Tamb, cosTilt, AirHumRat, Surface(SurfNum).Height, Surface(SurfNum).isVertical);
             };
         } else {
             tmpHc = CalcFisherPedersenCeilDiffuserFloor(state,
@@ -4885,7 +4895,8 @@ void EvaluateIntHcModels(EnergyPlusData &state,
                                                         Surface(SurfNum).CosTilt,
                                                         AirHumRat,
                                                         Surface(SurfNum).Height,
-                                                        state.dataConstruction->Construct(Surface(SurfNum).Construction).TypeIsWindow);
+                                                        state.dataConstruction->Construct(Surface(SurfNum).Construction).TypeIsWindow,
+                                                        Surface(SurfNum).isVertical);
         }
         state.dataSurface->SurfTAirRef(SurfNum) = DataSurfaces::RefAirTemp::ZoneMeanAirTemp;
         break;
@@ -4896,7 +4907,8 @@ void EvaluateIntHcModels(EnergyPlusData &state,
         if (Surface(SurfNum).ExtBoundCond == DataSurfaces::KivaFoundation) {
 
             HnFn = [=, &state](double Tsurf, double Tamb, double, double, double cosTilt) -> double {
-                return CalcFisherPedersenCeilDiffuserCeiling(state, AirChangeRate, Tsurf, Tamb, cosTilt, AirHumRat, Surface(SurfNum).Height);
+                return CalcFisherPedersenCeilDiffuserCeiling(
+                    state, AirChangeRate, Tsurf, Tamb, cosTilt, AirHumRat, Surface(SurfNum).Height, Surface(SurfNum).isVertical);
             };
         } else {
             tmpHc = CalcFisherPedersenCeilDiffuserCeiling(state,
@@ -4906,7 +4918,8 @@ void EvaluateIntHcModels(EnergyPlusData &state,
                                                           Surface(SurfNum).CosTilt,
                                                           AirHumRat,
                                                           Surface(SurfNum).Height,
-                                                          state.dataConstruction->Construct(Surface(SurfNum).Construction).TypeIsWindow);
+                                                          state.dataConstruction->Construct(Surface(SurfNum).Construction).TypeIsWindow,
+                                                          Surface(SurfNum).isVertical);
         }
         state.dataSurface->SurfTAirRef(SurfNum) = DataSurfaces::RefAirTemp::ZoneMeanAirTemp;
         break;
@@ -4917,7 +4930,8 @@ void EvaluateIntHcModels(EnergyPlusData &state,
         if (Surface(SurfNum).ExtBoundCond == DataSurfaces::KivaFoundation) {
 
             HnFn = [=, &state](double Tsurf, double Tamb, double, double, double cosTilt) -> double {
-                return CalcFisherPedersenCeilDiffuserWalls(state, AirChangeRate, Tsurf, Tamb, cosTilt, AirHumRat, Surface(SurfNum).Height);
+                return CalcFisherPedersenCeilDiffuserWalls(
+                    state, AirChangeRate, Tsurf, Tamb, cosTilt, AirHumRat, Surface(SurfNum).Height, Surface(SurfNum).isVertical);
             };
         } else {
             tmpHc = CalcFisherPedersenCeilDiffuserWalls(state,
@@ -4927,7 +4941,8 @@ void EvaluateIntHcModels(EnergyPlusData &state,
                                                         Surface(SurfNum).CosTilt,
                                                         AirHumRat,
                                                         Surface(SurfNum).Height,
-                                                        state.dataConstruction->Construct(Surface(SurfNum).Construction).TypeIsWindow);
+                                                        state.dataConstruction->Construct(Surface(SurfNum).Construction).TypeIsWindow,
+                                                        Surface(SurfNum).isVertical);
         }
         if (Surface(SurfNum).ExtBoundCond == DataSurfaces::KivaFoundation) {
             HnFn = [=](double, double, double, double, double) -> double { return tmpHc; };
@@ -5417,7 +5432,12 @@ void EvaluateExtHcModels(EnergyPlusData &state, int const SurfNum, int const Nat
         HfFn = [](double, double, double HfTerm, double, double) -> double { return HfTerm; };
         break;
     case ConvectionConstants::HcExt_DOE2Windward:
-        Hf = CalcDOE2Windward(SurfOutTemp, state.dataSurface->SurfOutDryBulbTemp(SurfNum), Surface(SurfNum).CosTilt, SurfWindSpeed, Roughness);
+        Hf = CalcDOE2Windward(SurfOutTemp,
+                              state.dataSurface->SurfOutDryBulbTemp(SurfNum),
+                              Surface(SurfNum).CosTilt,
+                              SurfWindSpeed,
+                              Roughness,
+                              Surface(SurfNum).isVertical);
         if (Surface(SurfNum).Class == SurfaceClass::Floor) { // used for exterior grade
             HfTermFn = [=](double, double, double, double windSpeed) -> double { return CalcMoWITTForcedWindward(windSpeed); };
         } else {
@@ -5431,7 +5451,12 @@ void EvaluateExtHcModels(EnergyPlusData &state, int const SurfNum, int const Nat
         HfFn = [](double, double, double HfTerm, double, double) -> double { return HfTerm; };
         break;
     case ConvectionConstants::HcExt_DOE2Leeward:
-        Hf = CalcDOE2Leeward(SurfOutTemp, state.dataSurface->SurfOutDryBulbTemp(SurfNum), Surface(SurfNum).CosTilt, SurfWindSpeed, Roughness);
+        Hf = CalcDOE2Leeward(SurfOutTemp,
+                             state.dataSurface->SurfOutDryBulbTemp(SurfNum),
+                             Surface(SurfNum).CosTilt,
+                             SurfWindSpeed,
+                             Roughness,
+                             Surface(SurfNum).isVertical);
         if (Surface(SurfNum).Class == SurfaceClass::Floor) { // used for exterior grade
             HfTermFn = [=](double, double, double, double windSpeed) -> double { return CalcMoWITTForcedWindward(windSpeed); };
         } else {
@@ -5443,7 +5468,7 @@ void EvaluateExtHcModels(EnergyPlusData &state, int const SurfNum, int const Nat
             };
         }
         HfFn = [=](double Tsurf, double Tamb, double hfTerm, double, double cosTilt) -> double {
-            return CalcDOE2Forced(Tsurf, Tamb, cosTilt, hfTerm, Roughness);
+            return CalcDOE2Forced(Tsurf, Tamb, cosTilt, hfTerm, Roughness, Surface(SurfNum).isVertical);
         };
         break;
     case ConvectionConstants::HcExt_NusseltJurges:
@@ -6979,7 +7004,8 @@ Real64 CalcFisherPedersenCeilDiffuserFloor(EnergyPlusData &state,
                                            Real64 const cosTilt,
                                            Real64 const humRat,
                                            Real64 const height,
-                                           bool const isWindow)
+                                           bool const isWindow,
+                                           bool const isVertical)
 {
 
     // AUTHOR: Brent Griffith (Aug 2010)
@@ -6994,7 +7020,7 @@ Real64 CalcFisherPedersenCeilDiffuserFloor(EnergyPlusData &state,
         return Hforced;
     } else {                        // Revert to purely natural convection
         Hforced = 4.11365377688938; // Value of Hforced when ACH=3
-        return CalcFisherPedersenCeilDiffuserNatConv(state, Hforced, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow);
+        return CalcFisherPedersenCeilDiffuserNatConv(state, Hforced, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow, isVertical);
     }
 }
 
@@ -7005,7 +7031,8 @@ Real64 CalcFisherPedersenCeilDiffuserCeiling(EnergyPlusData &state,
                                              Real64 const cosTilt,
                                              Real64 const humRat,
                                              Real64 const height,
-                                             bool const isWindow)
+                                             bool const isWindow,
+                                             bool const isVertical)
 {
 
     // AUTHOR: Brent Griffith (Aug 2010)
@@ -7020,7 +7047,7 @@ Real64 CalcFisherPedersenCeilDiffuserCeiling(EnergyPlusData &state,
         return Hforced;
     } else {                        // Revert to purely natural convection
         Hforced = 9.35711423763866; // Value of Hforced when ACH=3
-        return CalcFisherPedersenCeilDiffuserNatConv(state, Hforced, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow);
+        return CalcFisherPedersenCeilDiffuserNatConv(state, Hforced, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow, isVertical);
     }
 }
 
@@ -7031,7 +7058,8 @@ Real64 CalcFisherPedersenCeilDiffuserWalls(EnergyPlusData &state,
                                            Real64 const cosTilt,
                                            Real64 const humRat,
                                            Real64 const height,
-                                           bool const isWindow)
+                                           bool const isWindow,
+                                           bool const isVertical)
 {
 
     // AUTHOR: Brent Griffith (Aug 2010)
@@ -7046,7 +7074,7 @@ Real64 CalcFisherPedersenCeilDiffuserWalls(EnergyPlusData &state,
         return Hforced;
     } else {                        // Revert to purely natural convection
         Hforced = 3.17299636062606; // Value of Hforced when ACH=3
-        return CalcFisherPedersenCeilDiffuserNatConv(state, Hforced, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow);
+        return CalcFisherPedersenCeilDiffuserNatConv(state, Hforced, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow, isVertical);
     }
 }
 
@@ -7058,7 +7086,8 @@ Real64 CalcFisherPedersenCeilDiffuserNatConv(EnergyPlusData &state,
                                              Real64 const cosTilt,
                                              Real64 const humRat,
                                              Real64 const height,
-                                             bool const isWindow)
+                                             bool const isWindow,
+                                             bool const isVertical)
 {
 
     Real64 Hnatural;
@@ -7068,7 +7097,7 @@ Real64 CalcFisherPedersenCeilDiffuserNatConv(EnergyPlusData &state,
         Real64 const sinTilt = sin(tilt);
         Hnatural = CalcISO15099WindowIntConvCoeff(state, Tsurf, Tair, humRat, height, tilt, sinTilt);
     } else {
-        Hnatural = CalcASHRAETARPNatural(Tsurf, Tair, -cosTilt); // negative cosTilt because interior of surface
+        Hnatural = CalcASHRAETARPNatural(Tsurf, Tair, -cosTilt, isVertical); // negative cosTilt because interior of surface
     }
     if (ACH <= 0.5) {
         return Hnatural;
@@ -8488,10 +8517,11 @@ Real64 CalcDOE2Forced(Real64 const SurfaceTemp,
                       Real64 const AirTemp,
                       Real64 const CosineTilt,
                       Real64 const HfSmooth,
-                      DataSurfaces::SurfaceRoughness const RoughnessIndex)
+                      DataSurfaces::SurfaceRoughness const RoughnessIndex,
+                      bool const isVertical)
 {
     // This allows costly HfSmooth to be calculated independently (avoids excessive use of std::pow() in Kiva)
-    Real64 Hn = CalcASHRAETARPNatural(SurfaceTemp, AirTemp, CosineTilt);
+    Real64 Hn = CalcASHRAETARPNatural(SurfaceTemp, AirTemp, CosineTilt, isVertical);
     Real64 HcSmooth = std::sqrt(pow_2(Hn) + pow_2(HfSmooth));
     return RoughnessMultiplier[static_cast<int>(RoughnessIndex)] * (HcSmooth - Hn);
 }
@@ -8500,7 +8530,8 @@ Real64 CalcDOE2Windward(Real64 const SurfaceTemp,
                         Real64 const AirTemp,
                         Real64 const CosineTilt,
                         Real64 const WindAtZ,
-                        DataSurfaces::SurfaceRoughness const RoughnessIndex)
+                        DataSurfaces::SurfaceRoughness const RoughnessIndex,
+                        bool const isVertical)
 {
     // FUNCTION INFORMATION:
     //       AUTHOR         Brent Griffith
@@ -8521,14 +8552,15 @@ Real64 CalcDOE2Windward(Real64 const SurfaceTemp,
     //   ASHRAE Transactions 100(1):  1087.
     Real64 HfSmooth = CalcMoWITTForcedWindward(WindAtZ);
 
-    return CalcDOE2Forced(SurfaceTemp, AirTemp, CosineTilt, HfSmooth, RoughnessIndex);
+    return CalcDOE2Forced(SurfaceTemp, AirTemp, CosineTilt, HfSmooth, RoughnessIndex, isVertical);
 }
 
 Real64 CalcDOE2Leeward(Real64 const SurfaceTemp,
                        Real64 const AirTemp,
                        Real64 const CosineTilt,
                        Real64 const WindAtZ,
-                       DataSurfaces::SurfaceRoughness const RoughnessIndex)
+                       DataSurfaces::SurfaceRoughness const RoughnessIndex,
+                       bool const isVertical)
 {
     // FUNCTION INFORMATION:
     //       AUTHOR         Brent Griffith
@@ -8550,7 +8582,7 @@ Real64 CalcDOE2Leeward(Real64 const SurfaceTemp,
 
     Real64 HfSmooth = CalcMoWITTForcedLeeward(WindAtZ);
 
-    return CalcDOE2Forced(SurfaceTemp, AirTemp, CosineTilt, HfSmooth, RoughnessIndex);
+    return CalcDOE2Forced(SurfaceTemp, AirTemp, CosineTilt, HfSmooth, RoughnessIndex, isVertical);
 }
 
 Real64 CalcNusseltJurges(Real64 const WindAtZ)

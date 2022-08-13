@@ -56,6 +56,7 @@
 // EnergyPlus Headers
 #include <EnergyPlus/Data/EnergyPlusData.hh>
 #include <EnergyPlus/DataEnvironment.hh>
+#include <EnergyPlus/DataGlobalConstants.hh>
 #include <EnergyPlus/DataGlobals.hh>
 #include <EnergyPlus/DataHeatBalance.hh>
 #include <EnergyPlus/DataSurfaces.hh>
@@ -412,4 +413,21 @@ TEST_F(EnergyPlusFixture, SurfaceTest_HashMap)
     EXPECT_EQ(state->dataSurface->Surface(2).RepresentativeCalcSurfNum, 2);
     EXPECT_EQ(state->dataSurface->Surface(3).RepresentativeCalcSurfNum, 3);
     EXPECT_EQ(state->dataSurface->Surface(4).RepresentativeCalcSurfNum, 1);
+}
+
+TEST_F(EnergyPlusFixture, test_isSurfaceVertical)
+{
+    Real64 cosTilt;
+    bool actualResult;
+
+    // Test various angles
+    for (int angleNum = 1; angleNum <= 18; angleNum++) {
+        cosTilt = cos((double(angleNum) * 10.0) / 180 * EnergyPlus::DataGlobalConstants::Pi);
+        actualResult = isSurfaceVertical(cosTilt);
+        if (angleNum == 9) { // this is a 90 degree angle for a surface tilt which is vertical--result should be true
+            EXPECT_TRUE(actualResult);
+        } else { // this is something other than 90 degrees which for a surface tilt is not vertical--result is false
+            EXPECT_FALSE(actualResult);
+        }
+    }
 }

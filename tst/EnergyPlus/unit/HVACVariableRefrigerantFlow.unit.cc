@@ -10835,11 +10835,11 @@ TEST_F(EnergyPlusFixture, VRFFluidControl_FanSysModel_OnOffModeTest)
     SimVRF(*state, VRFTUNum, FirstHVACIteration, OnOffAirFlowRatio, SysOutputProvided, LatOutputProvided, QZnReq);
     // check fan operation for cooling mode
     Real64 Result_AirMassFlowRateDesign = state->dataHVACFan->fanObjs[0]->maxAirMassFlowRate();
-    EXPECT_NEAR(Result_AirMassFlowRateDesign, 0.347052, 0.000001);
+    EXPECT_NEAR(Result_AirMassFlowRateDesign, 0.347075, 0.000001);
     Real64 Result_AirMassFlowRate = state->dataLoopNodes->Node(state->dataHVACFan->fanObjs[0]->outletNodeNum).MassFlowRate;
     EXPECT_NEAR(Result_AirMassFlowRate, state->dataDXCoils->DXCoil(1).RatedAirMassFlowRate(1), 0.000001);
     Real64 Result_FanPower = state->dataHVACFan->fanObjs[0]->fanPower();
-    EXPECT_NEAR(Result_FanPower, 39.593, 0.001);
+    EXPECT_NEAR(Result_FanPower, 39.596, 0.001);
 
     // test no load mode fan operation
     state->dataZoneEnergyDemand->ZoneSysEnergyDemand(1).RemainingOutputRequired = 0.0;
@@ -10853,7 +10853,7 @@ TEST_F(EnergyPlusFixture, VRFFluidControl_FanSysModel_OnOffModeTest)
     SimVRF(*state, VRFTUNum, FirstHVACIteration, OnOffAirFlowRatio, SysOutputProvided, LatOutputProvided, QZnReq);
     // check no load fan operation
     Result_AirMassFlowRateDesign = state->dataHVACFan->fanObjs[0]->maxAirMassFlowRate();
-    EXPECT_NEAR(Result_AirMassFlowRateDesign, 0.34706, 0.00001);
+    EXPECT_NEAR(Result_AirMassFlowRateDesign, 0.347075, 0.00001);
     Result_AirMassFlowRate = state->dataLoopNodes->Node(state->dataHVACFan->fanObjs[0]->outletNodeNum).MassFlowRate;
     EXPECT_EQ(Result_AirMassFlowRate, 0.0);
     Result_FanPower = state->dataHVACFan->fanObjs[0]->fanPower();

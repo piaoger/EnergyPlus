@@ -314,7 +314,7 @@ namespace ConvectionCoefficients {
                                       Real64 ZoneMeanAirTemperature // Mean Air Temperature of Zone
     );
 
-    Real64 CalcASHRAETARPNatural(Real64 Tsurf, Real64 Tamb, Real64 cosTilt);
+    Real64 CalcASHRAETARPNatural(Real64 Tsurf, Real64 Tamb, Real64 cosTilt, bool isSurfVertical);
 
     void CalcASHRAEDetailedIntConvCoeff(EnergyPlusData &state,
                                         int SurfNum,                  // surface number for which coefficients are being calculated
@@ -344,7 +344,8 @@ namespace ConvectionCoefficients {
                                            Real64 cosTilt,
                                            Real64 humRat,
                                            Real64 height,
-                                           bool isWindow = false);
+                                           bool isWindow = false,
+                                           bool isVertical = false);
 
     void CalcCeilingDiffuserIntConvCoeff(EnergyPlusData &state,
                                          int ZoneNum,
@@ -498,7 +499,8 @@ namespace ConvectionCoefficients {
                                                Real64 cosTilt,
                                                Real64 humRat,
                                                Real64 height,
-                                               bool isWindow = false);
+                                               bool isWindow = false,
+                                               bool isVertical = false);
 
     Real64 CalcFisherPedersenCeilDiffuserCeiling(EnergyPlusData &state,
                                                  Real64 ACH, // [1/hr] air system air change rate
@@ -507,7 +509,8 @@ namespace ConvectionCoefficients {
                                                  Real64 cosTilt,
                                                  Real64 humRat,
                                                  Real64 height,
-                                                 bool isWindow = false);
+                                                 bool isWindow = false,
+                                                 bool isVertical = false);
 
     Real64 CalcFisherPedersenCeilDiffuserWalls(EnergyPlusData &state,
                                                Real64 ACH, // [1/hr] air system air change rate
@@ -516,10 +519,19 @@ namespace ConvectionCoefficients {
                                                Real64 cosTilt,
                                                Real64 humRat,
                                                Real64 height,
-                                               bool isWindow = false);
+                                               bool isWindow = false,
+                                               bool isVertical = false);
 
-    Real64 CalcFisherPedersenCeilDiffuserNatConv(
-        EnergyPlusData &state, Real64 Hforced, Real64 ACH, Real64 Tsurf, Real64 Tair, Real64 cosTilt, Real64 humRat, Real64 height, bool isWindow);
+    Real64 CalcFisherPedersenCeilDiffuserNatConv(EnergyPlusData &state,
+                                                 Real64 Hforced,
+                                                 Real64 ACH,
+                                                 Real64 Tsurf,
+                                                 Real64 Tair,
+                                                 Real64 cosTilt,
+                                                 Real64 humRat,
+                                                 Real64 height,
+                                                 bool isWindow,
+                                                 bool isVertical);
 
     Real64 CalcAlamdariHammondUnstableHorizontal(Real64 DeltaTemp,        // [C] temperature difference between surface and air
                                                  Real64 HydraulicDiameter // [m] characteristic size, = (4 * area) / perimeter
@@ -722,11 +734,14 @@ namespace ConvectionCoefficients {
 
     Real64 CalcMoWITTLeeward(Real64 DeltaTemp, Real64 WindAtZ);
 
-    Real64 CalcDOE2Forced(Real64 SurfaceTemp, Real64 AirTemp, Real64 CosineTilt, Real64 HfSmooth, DataSurfaces::SurfaceRoughness RoughnessIndex);
+    Real64 CalcDOE2Forced(
+        Real64 SurfaceTemp, Real64 AirTemp, Real64 CosineTilt, Real64 HfSmooth, DataSurfaces::SurfaceRoughness RoughnessIndex, bool isVertical);
 
-    Real64 CalcDOE2Windward(Real64 SurfaceTemp, Real64 AirTemp, Real64 CosineTilt, Real64 WindAtZ, DataSurfaces::SurfaceRoughness RoughnessIndex);
+    Real64 CalcDOE2Windward(
+        Real64 SurfaceTemp, Real64 AirTemp, Real64 CosineTilt, Real64 WindAtZ, DataSurfaces::SurfaceRoughness RoughnessIndex, bool isVertical);
 
-    Real64 CalcDOE2Leeward(Real64 SurfaceTemp, Real64 AirTemp, Real64 CosineTilt, Real64 WindAtZ, DataSurfaces::SurfaceRoughness RoughnessIndex);
+    Real64 CalcDOE2Leeward(
+        Real64 SurfaceTemp, Real64 AirTemp, Real64 CosineTilt, Real64 WindAtZ, DataSurfaces::SurfaceRoughness RoughnessIndex, bool isVertical);
 
     Real64 CalcNusseltJurges(Real64 WindAtZ);
 

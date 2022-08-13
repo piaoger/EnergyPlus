@@ -733,4 +733,21 @@ Real64 AbsBackSide(EnergyPlusData &state, int SurfNum)
     return AbsorptanceFromExteriorBackSide + AbsorptanceFromInteriorBackSide;
 }
 
+bool isSurfaceVertical(Real64 surfCosTilt)
+{
+    Real64 verticalSurfCosTiltMin = 0.0001; // Reasonable number that helps avoid any significant step change in
+                                            // the switch between convection correlation from vertical to non-vertical.
+                                            // The CosTilt value represents a roughly 0.005 degree difference from 90.
+                                            // This results in a less than 0.004% change in the convection coefficient
+                                            // as the ASHRAETARPNatural model switches from reduced to vertical to
+                                            // enhanced convection models.
+    bool returnValue;
+    if (abs(surfCosTilt) < verticalSurfCosTiltMin) {
+        returnValue = true;
+    } else {
+        returnValue = false;
+    }
+    return returnValue;
+}
+
 } // namespace EnergyPlus::DataSurfaces

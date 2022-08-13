@@ -285,6 +285,7 @@ TEST_F(EnergyPlusFixture, WindowFrameTest)
         // Use complementary angle for exterior natural convection calculations
         state->dataSurface->Surface(1).Tilt = 180 - tiltSave;
         state->dataSurface->Surface(1).CosTilt = cos(state->dataSurface->Surface(winNum).Tilt * DataGlobalConstants::Pi / 180);
+        state->dataSurface->Surface(1).isVertical = EnergyPlus::DataSurfaces::isSurfaceVertical(state->dataSurface->Surface(1).CosTilt);
         state->dataSurface->Surface(1).SinTilt = sin(state->dataSurface->Surface(winNum).Tilt * DataGlobalConstants::Pi / 180);
         ConvectionCoefficients::CalcISO15099WindowIntConvCoeff(
             *state,
@@ -296,6 +297,7 @@ TEST_F(EnergyPlusFixture, WindowFrameTest)
         // revert tilt for interior natural convection calculations
         state->dataSurface->Surface(1).Tilt = tiltSave;
         state->dataSurface->Surface(1).CosTilt = cos(tiltSave * DataGlobalConstants::Pi / 180);
+        state->dataSurface->Surface(1).isVertical = EnergyPlus::DataSurfaces::isSurfaceVertical(state->dataSurface->Surface(1).CosTilt);
         state->dataSurface->Surface(1).SinTilt = sin(tiltSave * DataGlobalConstants::Pi / 180);
         ConvectionCoefficients::CalcISO15099WindowIntConvCoeff(
             *state,

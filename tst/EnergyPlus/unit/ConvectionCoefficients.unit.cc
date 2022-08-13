@@ -1080,8 +1080,10 @@ TEST_F(ConvectionCoefficientsFixture, EvaluateIntHcModelsFisherPedersen)
     Hc = 0.0;
     state->dataSurface->Surface(SurfNum).CosTilt = -1;
 
-    HcExpectedValue = CalcASHRAETARPNatural(
-        state->dataHeatBalSurf->SurfInsideTempHist(1)(1), state->dataHeatBalFanSys->MAT(1), -state->dataSurface->Surface(SurfNum).CosTilt);
+    HcExpectedValue = CalcASHRAETARPNatural(state->dataHeatBalSurf->SurfInsideTempHist(1)(1),
+                                            state->dataHeatBalFanSys->MAT(1),
+                                            -state->dataSurface->Surface(SurfNum).CosTilt,
+                                            state->dataSurface->Surface(SurfNum).isVertical);
 
     EvaluateIntHcModels(*state, SurfNum, ConvModelEquationNum, Hc);
     EXPECT_EQ(state->dataSurface->SurfTAirRef(SurfNum), DataSurfaces::RefAirTemp::ZoneMeanAirTemp);
@@ -1092,8 +1094,10 @@ TEST_F(ConvectionCoefficientsFixture, EvaluateIntHcModelsFisherPedersen)
     Hc = 0.0;
     state->dataSurface->Surface(SurfNum).CosTilt = 1;
 
-    HcExpectedValue = CalcASHRAETARPNatural(
-        state->dataHeatBalSurf->SurfInsideTempHist(1)(1), state->dataHeatBalFanSys->MAT(1), -state->dataSurface->Surface(SurfNum).CosTilt);
+    HcExpectedValue = CalcASHRAETARPNatural(state->dataHeatBalSurf->SurfInsideTempHist(1)(1),
+                                            state->dataHeatBalFanSys->MAT(1),
+                                            -state->dataSurface->Surface(SurfNum).CosTilt,
+                                            state->dataSurface->Surface(SurfNum).isVertical);
 
     EvaluateIntHcModels(*state, SurfNum, ConvModelEquationNum, Hc);
     EXPECT_EQ(state->dataSurface->SurfTAirRef(SurfNum), DataSurfaces::RefAirTemp::ZoneMeanAirTemp);
@@ -1103,9 +1107,12 @@ TEST_F(ConvectionCoefficientsFixture, EvaluateIntHcModelsFisherPedersen)
     ConvModelEquationNum = ConvectionConstants::HcInt_FisherPedersenCeilDiffuserWalls;
     Hc = 0.0;
     state->dataSurface->Surface(SurfNum).CosTilt = 0;
+    state->dataSurface->Surface(SurfNum).isVertical = true;
 
-    HcExpectedValue = CalcASHRAETARPNatural(
-        state->dataHeatBalSurf->SurfInsideTempHist(1)(1), state->dataHeatBalFanSys->MAT(1), -state->dataSurface->Surface(SurfNum).CosTilt);
+    HcExpectedValue = CalcASHRAETARPNatural(state->dataHeatBalSurf->SurfInsideTempHist(1)(1),
+                                            state->dataHeatBalFanSys->MAT(1),
+                                            -state->dataSurface->Surface(SurfNum).CosTilt,
+                                            state->dataSurface->Surface(SurfNum).isVertical);
 
     EvaluateIntHcModels(*state, SurfNum, ConvModelEquationNum, Hc);
     EXPECT_EQ(state->dataSurface->SurfTAirRef(SurfNum), DataSurfaces::RefAirTemp::ZoneMeanAirTemp);
@@ -1142,6 +1149,7 @@ TEST_F(ConvectionCoefficientsFixture, EvaluateIntHcModelsFisherPedersen)
     ConvModelEquationNum = ConvectionConstants::HcInt_FisherPedersenCeilDiffuserWalls;
     Hc = 0.0;
     state->dataSurface->Surface(SurfNum).CosTilt = 0;
+    state->dataSurface->Surface(SurfNum).isVertical = true;
 
     HcExpectedValue = 3.212;
 
@@ -1249,6 +1257,7 @@ TEST_F(ConvectionCoefficientsFixture, TestCalcFisherPedersenCeilDiffuserNatConv)
     bool isWindow;
     Real64 ExpectedHconv;
     Real64 CalculatedHconv;
+    bool isVertical;
 
     state->dataEnvrn->OutBaroPress = 101325.0;
 
@@ -1262,7 +1271,8 @@ TEST_F(ConvectionCoefficientsFixture, TestCalcFisherPedersenCeilDiffuserNatConv)
     height = 1.0;
     isWindow = false;
     ExpectedHconv = 1.2994;
-    CalculatedHconv = CalcFisherPedersenCeilDiffuserNatConv(*state, Hforced, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow);
+    isVertical = false;
+    CalculatedHconv = CalcFisherPedersenCeilDiffuserNatConv(*state, Hforced, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow, isVertical);
     EXPECT_NEAR(ExpectedHconv, CalculatedHconv, 0.0001);
 
     // Test 2: Window, all natural
@@ -1275,7 +1285,8 @@ TEST_F(ConvectionCoefficientsFixture, TestCalcFisherPedersenCeilDiffuserNatConv)
     height = 1.0;
     isWindow = true;
     ExpectedHconv = 0.8067;
-    CalculatedHconv = CalcFisherPedersenCeilDiffuserNatConv(*state, Hforced, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow);
+    isVertical = false;
+    CalculatedHconv = CalcFisherPedersenCeilDiffuserNatConv(*state, Hforced, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow, isVertical);
     EXPECT_NEAR(ExpectedHconv, CalculatedHconv, 0.0001);
 
     // Test 3: Non-window, all natural
@@ -1288,7 +1299,8 @@ TEST_F(ConvectionCoefficientsFixture, TestCalcFisherPedersenCeilDiffuserNatConv)
     height = 1.0;
     isWindow = false;
     ExpectedHconv = 1.2994;
-    CalculatedHconv = CalcFisherPedersenCeilDiffuserNatConv(*state, Hforced, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow);
+    isVertical = false;
+    CalculatedHconv = CalcFisherPedersenCeilDiffuserNatConv(*state, Hforced, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow, isVertical);
     EXPECT_NEAR(ExpectedHconv, CalculatedHconv, 0.0001);
 
     // Test 4: Non-window, transition
@@ -1301,7 +1313,8 @@ TEST_F(ConvectionCoefficientsFixture, TestCalcFisherPedersenCeilDiffuserNatConv)
     height = 1.0;
     isWindow = false;
     ExpectedHconv = 2.16942;
-    CalculatedHconv = CalcFisherPedersenCeilDiffuserNatConv(*state, Hforced, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow);
+    isVertical = false;
+    CalculatedHconv = CalcFisherPedersenCeilDiffuserNatConv(*state, Hforced, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow, isVertical);
     EXPECT_NEAR(ExpectedHconv, CalculatedHconv, 0.0001);
 
     // Test 5: Non-window, all ceiling diffuser correlation
@@ -1314,7 +1327,8 @@ TEST_F(ConvectionCoefficientsFixture, TestCalcFisherPedersenCeilDiffuserNatConv)
     height = 1.0;
     isWindow = false;
     ExpectedHconv = 10.0;
-    CalculatedHconv = CalcFisherPedersenCeilDiffuserNatConv(*state, Hforced, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow);
+    isVertical = false;
+    CalculatedHconv = CalcFisherPedersenCeilDiffuserNatConv(*state, Hforced, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow, isVertical);
     EXPECT_NEAR(ExpectedHconv, CalculatedHconv, 0.0001);
 }
 
@@ -1330,6 +1344,7 @@ TEST_F(ConvectionCoefficientsFixture, TestCalcFisherPedersenCeilDiffuserCorrelat
     bool isWindow;
     Real64 ExpectedHconv;
     Real64 CalculatedHconv;
+    bool isVertical;
 
     state->dataEnvrn->OutBaroPress = 101325.0;
 
@@ -1341,14 +1356,15 @@ TEST_F(ConvectionCoefficientsFixture, TestCalcFisherPedersenCeilDiffuserCorrelat
     humRat = 0.08;
     height = 1.0;
     isWindow = false;
+    isVertical = false;
     ExpectedHconv = 4.13721502661183;
-    CalculatedHconv = CalcFisherPedersenCeilDiffuserFloor(*state, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow);
+    CalculatedHconv = CalcFisherPedersenCeilDiffuserFloor(*state, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow, isVertical);
     EXPECT_NEAR(ExpectedHconv, CalculatedHconv, 0.0001);
     ExpectedHconv = 9.70692167003631;
-    CalculatedHconv = CalcFisherPedersenCeilDiffuserCeiling(*state, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow);
+    CalculatedHconv = CalcFisherPedersenCeilDiffuserCeiling(*state, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow, isVertical);
     EXPECT_NEAR(ExpectedHconv, CalculatedHconv, 0.0001);
     ExpectedHconv = 3.28943537910741;
-    CalculatedHconv = CalcFisherPedersenCeilDiffuserWalls(*state, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow);
+    CalculatedHconv = CalcFisherPedersenCeilDiffuserWalls(*state, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow, isVertical);
     EXPECT_NEAR(ExpectedHconv, CalculatedHconv, 0.0001);
 
     // Test 2: Natural Convection All Correlations (Floor, Ceiling, Wall)--note, all should give same answer because of how variables are set
@@ -1360,11 +1376,12 @@ TEST_F(ConvectionCoefficientsFixture, TestCalcFisherPedersenCeilDiffuserCorrelat
     height = 1.0;
     isWindow = false;
     ExpectedHconv = 1.2994;
-    CalculatedHconv = CalcFisherPedersenCeilDiffuserFloor(*state, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow);
+    isVertical = false;
+    CalculatedHconv = CalcFisherPedersenCeilDiffuserFloor(*state, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow, isVertical);
     EXPECT_NEAR(ExpectedHconv, CalculatedHconv, 0.0001);
-    CalculatedHconv = CalcFisherPedersenCeilDiffuserCeiling(*state, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow);
+    CalculatedHconv = CalcFisherPedersenCeilDiffuserCeiling(*state, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow, isVertical);
     EXPECT_NEAR(ExpectedHconv, CalculatedHconv, 0.0001);
-    CalculatedHconv = CalcFisherPedersenCeilDiffuserWalls(*state, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow);
+    CalculatedHconv = CalcFisherPedersenCeilDiffuserWalls(*state, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow, isVertical);
     EXPECT_NEAR(ExpectedHconv, CalculatedHconv, 0.0001);
 
     // Test 3: Mixed Covection All Correlations (Floor, Ceiling, Wall)
@@ -1376,13 +1393,14 @@ TEST_F(ConvectionCoefficientsFixture, TestCalcFisherPedersenCeilDiffuserCorrelat
     height = 1.0;
     isWindow = false;
     ExpectedHconv = 2.70653;
-    CalculatedHconv = CalcFisherPedersenCeilDiffuserFloor(*state, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow);
+    isVertical = false;
+    CalculatedHconv = CalcFisherPedersenCeilDiffuserFloor(*state, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow, isVertical);
     EXPECT_NEAR(ExpectedHconv, CalculatedHconv, 0.0001);
     ExpectedHconv = 5.32826;
-    CalculatedHconv = CalcFisherPedersenCeilDiffuserCeiling(*state, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow);
+    CalculatedHconv = CalcFisherPedersenCeilDiffuserCeiling(*state, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow, isVertical);
     EXPECT_NEAR(ExpectedHconv, CalculatedHconv, 0.0001);
     ExpectedHconv = 2.23620;
-    CalculatedHconv = CalcFisherPedersenCeilDiffuserWalls(*state, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow);
+    CalculatedHconv = CalcFisherPedersenCeilDiffuserWalls(*state, ACH, Tsurf, Tair, cosTilt, humRat, height, isWindow, isVertical);
     EXPECT_NEAR(ExpectedHconv, CalculatedHconv, 0.0001);
 }
 
@@ -1882,6 +1900,7 @@ TEST_F(ConvectionCoefficientsFixture, ConvectionCoefficientsTest_HConvInDependen
 
     state->dataSurface->Surface.allocate(1);
     state->dataSurface->Surface(1).CosTilt = 0;
+    state->dataSurface->Surface(1).isVertical = true;
 
     state->dataHeatBalSurf->SurfHConvInt.allocate(1);
 
