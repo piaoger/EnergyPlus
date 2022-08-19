@@ -316,13 +316,13 @@ void GetPollutionFactorInput(EnergyPlusData &state)
                 ErrorsFound = true;
                 continue;
             }
-            
+
             if (isFuelFactorUsed) {
                 ShowWarningError(state,
                                  cCurrentModuleObject + ": " + FuelType.FuelTypeNames(Loop) + " already entered. Previous entry will be used.");
                 continue;
             }
-            
+
             Pollution.tempInputCoef.FuelFactorUsed = true;
             // Get the input and temporarily write it to the tempInputCoef portion of the data structure
             Pollution.tempInputCoef.Source = state.dataIPShortCut->rNumericArgs(1);
@@ -495,7 +495,7 @@ void GetPollutionFactorInput(EnergyPlusData &state)
                                 Pollution.tempInputCoef.NucLoSched,
                                 ErrorsFound);
             }
-            
+
             // Push the data from tempInputCoef to the correct structure
             if (SELECT_CASE_var == "NATURALGAS") {
                 Pollution.NatGasCoef = Pollution.tempInputCoef;
@@ -518,7 +518,7 @@ void GetPollutionFactorInput(EnergyPlusData &state)
             } else if (SELECT_CASE_var == "OTHERFUEL2") {
                 Pollution.NatGasCoef = Pollution.tempInputCoef;
             }
-            
+
             Pollution.tempInputCoef.FuelFactorUsed = false; // Reset to make sure this is not impacting anything else
         }
 
