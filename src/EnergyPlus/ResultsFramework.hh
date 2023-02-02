@@ -213,7 +213,7 @@ namespace ResultsFramework {
     public:
         typedef std::pair<int, Variable> VarPtrPair;
 
-        explicit DataFrame(const std::string &ReportFreq);
+        explicit DataFrame(const std::string &ReportFreq, const OutputProcessor::ReportingFrequency frequency);
         ~DataFrame() override = default;
 
         void addVariable(Variable const &var);
@@ -230,8 +230,12 @@ namespace ResultsFramework {
         [[nodiscard]] bool rVariablesScanned() const;
         [[nodiscard]] bool iVariablesScanned() const;
 
+        void newMonthlyRow(const int month, const int dayOfMonth, int hourOfDay, int curMin, int calendarYear);
+        void newDailyRow(const int month, const int dayOfMonth, int hourOfDay, int curMin, int calendarYear);
+
         void newRow(const int month, const int dayOfMonth, int hourOfDay, int curMin);
-        //        void newRow(const std::string &ts);
+        void newRow(int month, int dayOfMonth, int hourOfDay, int curMin, int calendarYear, bool leapYear);
+
         virtual void pushVariableValue(const int reportID, double value);
 
         Variable &lastVariable();
@@ -246,7 +250,9 @@ namespace ResultsFramework {
         bool RDataFrameEnabled = false;
         bool RVariablesScanned = false;
         bool IVariablesScanned = false;
-        std::string ReportFrequency;
+        bool iso8601 = true;
+        OutputProcessor::ReportingFrequency frequency;
+        std::string ReportFrequencyString;
         std::vector<std::string> TS;
         std::map<int, Variable> variableMap;
         int lastVarID = -1;
@@ -255,7 +261,7 @@ namespace ResultsFramework {
     class MeterDataFrame : public DataFrame
     {
     public:
-        explicit MeterDataFrame(const std::string &ReportFreq) : DataFrame(ReportFreq){};
+        explicit MeterDataFrame(const std::string &ReportFreq, const OutputProcessor::ReportingFrequency frequency) : DataFrame(ReportFreq, frequency){};
         ~MeterDataFrame() override = default;
 
         void addVariable(MeterVariable const &var);
@@ -422,20 +428,20 @@ namespace ResultsFramework {
 
         void initializeMeters(const Array1D<OutputProcessor::MeterType> &EnergyMeters, const OutputProcessor::ReportingFrequency reportFrequency);
 
-        DataFrame RIDetailedZoneTSData = DataFrame("Detailed-Zone");
-        DataFrame RIDetailedHVACTSData = DataFrame("Detailed-HVAC");
-        DataFrame RITimestepTSData = DataFrame("TimeStep");
-        DataFrame RIHourlyTSData = DataFrame("Hourly");
-        DataFrame RIDailyTSData = DataFrame("Daily");
-        DataFrame RIMonthlyTSData = DataFrame("Monthly");
-        DataFrame RIRunPeriodTSData = DataFrame("RunPeriod");
-        DataFrame RIYearlyTSData = DataFrame("Yearly");
-        MeterDataFrame TSMeters = MeterDataFrame("TimeStep");
-        MeterDataFrame HRMeters = MeterDataFrame("Hourly");
-        MeterDataFrame DYMeters = MeterDataFrame("Daily");
-        MeterDataFrame MNMeters = MeterDataFrame("Monthly");
-        MeterDataFrame SMMeters = MeterDataFrame("RunPeriod");
-        MeterDataFrame YRMeters = MeterDataFrame("Yearly");
+        DataFrame RIDetailedZoneTSData = DataFrame("Detailed-Zone", OutputProcessor::ReportingFrequency::EachCall);
+        DataFrame RIDetailedHVACTSData = DataFrame("Detailed-HVAC", OutputProcessor::ReportingFrequency::EachCall);
+        DataFrame RITimestepTSData = DataFrame("TimeStep", OutputProcessor::ReportingFrequency::TimeStep);
+        DataFrame RIHourlyTSData = DataFrame("Hourly", OutputProcessor::ReportingFrequency::Hourly);
+        DataFrame RIDailyTSData = DataFrame("Daily", OutputProcessor::ReportingFrequency::Daily);
+        DataFrame RIMonthlyTSData = DataFrame("Monthly", OutputProcessor::ReportingFrequency::Monthly);
+        DataFrame RIRunPeriodTSData = DataFrame("RunPeriod", OutputProcessor::ReportingFrequency::Simulation);
+        DataFrame RIYearlyTSData = DataFrame("Yearly", OutputProcessor::ReportingFrequency::Yearly);
+        MeterDataFrame TSMeters = MeterDataFrame("TimeStep", OutputProcessor::ReportingFrequency::TimeStep);
+        MeterDataFrame HRMeters = MeterDataFrame("Hourly", OutputProcessor::ReportingFrequency::Hourly);
+        MeterDataFrame DYMeters = MeterDataFrame("Daily", OutputProcessor::ReportingFrequency::Daily);
+        MeterDataFrame MNMeters = MeterDataFrame("Monthly", OutputProcessor::ReportingFrequency::Monthly);
+        MeterDataFrame SMMeters = MeterDataFrame("RunPeriod", OutputProcessor::ReportingFrequency::Simulation);
+        MeterDataFrame YRMeters = MeterDataFrame("Yearly", OutputProcessor::ReportingFrequency::Yearly);
 
         void writeOutputs(EnergyPlusData &state);
 

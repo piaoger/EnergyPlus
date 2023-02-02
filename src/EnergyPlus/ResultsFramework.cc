@@ -361,10 +361,9 @@ namespace ResultsFramework {
     }
 
     // class DataFrame
-    DataFrame::DataFrame(const std::string &ReportFreq)
-    {
-        ReportFrequency = ReportFreq;
-    }
+    DataFrame::DataFrame(const std::string &ReportFreq, const OutputProcessor::ReportingFrequency frequency)
+        : ReportFrequencyString(ReportFreq), frequency(frequency)
+    {}
 
     void DataFrame::addVariable(Variable const &var)
     {
@@ -377,7 +376,30 @@ namespace ResultsFramework {
         return variableMap.at(lastVarID);
     }
 
-    void DataFrame::newRow(const int month, const int dayOfMonth, int hourOfDay, int curMin)
+    void DataFrame::newMonthlyRow(const int month, const int dayOfMonth, int hourOfDay, int curMin, int calendarYear)
+    {
+        static const std::vector<std::string> months(
+            {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"});
+
+        if (curMin > 0) {
+            hourOfDay -= 1;
+        }
+        if (curMin == 60) {
+            curMin = 0;
+            hourOfDay += 1;
+        }
+
+        assert(frequency == OutputProcessor::ReportingFrequency::Monthly);
+        assert(hourOfDay == 24 && curMin == 0);
+        assert(month >= 1 && month <= 12);
+        if (iso8601) {
+            TS.emplace_back(fmt::format("{:04d}-{:02d}", calendarYear, month));
+        } else {
+            TS.emplace_back(months[month - 1]);
+        }
+    }
+
+    void DataFrame::newDailyRow(const int month, const int dayOfMonth, int hourOfDay, int curMin, int calendarYear)
     {
         if (curMin > 0) {
             hourOfDay -= 1;
@@ -387,15 +409,107 @@ namespace ResultsFramework {
             hourOfDay += 1;
         }
 
-        // future start of ISO 8601 datetime output
-        // fmt::format("YYYY-{:02d}/{:02d}T{:02d}:{:02d}:00", month, dayOfMonth, hourOfDay, curMin);
-        TS.emplace_back(fmt::format("{:02d}/{:02d} {:02d}:{:02d}:00", month, dayOfMonth, hourOfDay, curMin));
+        assert(frequency == OutputProcessor::ReportingFrequency::Daily);
+        assert(hourOfDay == 24 && curMin == 0);
+        if (iso8601) {
+            TS.emplace_back(fmt::format("{:04d}-{:02d}-{:02d}", calendarYear, month, dayOfMonth));
+        } else {
+            TS.emplace_back(fmt::format("{:02d}/{:02d} {:02d}:{:02d}:00", month, dayOfMonth, hourOfDay, curMin));
+        }
     }
 
-    //    void DataFrame::newRow(const std::string &ts)
-    //    {
-    //        TS.emplace_back(ts);
-    //    }
+    void DataFrame::newRow(const int month, const int dayOfMonth, int hourOfDay, int curMin)
+    {
+        static const std::vector<std::string> months(
+            {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"});
+        
+        if (curMin > 0) {
+            hourOfDay -= 1;
+        }
+        if (curMin == 60) {
+            curMin = 0;
+            hourOfDay += 1;
+        }
+        switch (frequency) {
+        case OutputProcessor::ReportingFrequency::Monthly:
+            assert(hourOfDay == 24 && curMin == 0);
+            assert(month >= 1 && month <= 12);
+            TS.emplace_back(months[month-1]);
+            break;
+        default:
+            TS.emplace_back(fmt::format("{:02d}/{:02d} {:02d}:{:02d}:00", month, dayOfMonth, hourOfDay, curMin));
+            break;
+        }
+    }
+
+    void DataFrame::newRow(int month, int dayOfMonth, int hourOfDay, int curMin, int calendarYear, bool leapYear)
+    {
+        static const std::vector<std::string> months(
+            {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"});
+        if (curMin > 0) {
+            hourOfDay -= 1;
+        }
+        if (curMin == 60) {
+            curMin = 0;
+            hourOfDay += 1;
+        }
+        if (frequency == OutputProcessor::ReportingFrequency::Monthly) {
+            assert(hourOfDay == 24 && curMin == 0);
+            assert(month >= 1 && month <= 12);
+            TS.emplace_back(months[month - 1]);
+        } else if (frequency == OutputProcessor::ReportingFrequency::EachCall || frequency == OutputProcessor::ReportingFrequency::Hourly ||
+                   frequency == OutputProcessor::ReportingFrequency::TimeStep) {
+            if (iso8601) {
+                if (hourOfDay == 24) {
+                    assert(curMin == 0);
+                    hourOfDay = 0;
+                    dayOfMonth += 1;
+                    switch (month) {
+                    case 4:  // April
+                    case 6:  // June
+                    case 9:  // September
+                    case 11: // November
+                        if (dayOfMonth > 30) {
+                            dayOfMonth = 1;
+                            month += 1;
+                        }
+                        break;
+                    case 2: // February
+                        if (leapYear) {
+                            if (dayOfMonth > 29) {
+                                dayOfMonth = 1;
+                                month = 3;
+                            }
+                        } else {
+                            if (dayOfMonth > 28) {
+                                dayOfMonth = 1;
+                                month = 3;
+                            }
+                        }
+                        break;
+                    case 12: // December
+                        if (dayOfMonth > 31) {
+                            dayOfMonth = 1;
+                            month = 1;
+                            calendarYear += 1;
+                        }
+                        break;
+                    default: // Everything else
+                        if (dayOfMonth > 31) {
+                            dayOfMonth = 1;
+                            month += 1;
+                        }
+                        break;
+                    }
+                }
+                TS.emplace_back(fmt::format("{:04d}-{:02d}-{:02d}T{:02d}:{:02d}:00", calendarYear, month, dayOfMonth, hourOfDay, curMin));
+            } else {
+                TS.emplace_back(fmt::format("{:02d}/{:02d} {:02d}:{:02d}:00", month, dayOfMonth, hourOfDay, curMin));
+            }
+        } else {
+            TS.emplace_back(fmt::format("{:02d}/{:02d} {:02d}:{:02d}:00", month, dayOfMonth, hourOfDay, curMin));
+        }
+    }
 
     void DataFrame::setRDataFrameEnabled(bool state)
     {
@@ -478,7 +592,7 @@ namespace ResultsFramework {
             }
             rows.push_back({{TS.at(row), vals}});
         }
-        root = {{"ReportFrequency", ReportFrequency}, {"Cols", cols}, {"Rows", rows}};
+        root = {{"ReportFrequency", ReportFrequencyString}, {"Cols", cols}, {"Rows", rows}};
         return root;
     }
 
@@ -523,7 +637,7 @@ namespace ResultsFramework {
             }
             rows.push_back({{TS.at(row), vals}});
         }
-        root = {{"ReportFrequency", ReportFrequency}, {"Cols", cols}, {"Rows", rows}};
+        root = {{"ReportFrequency", ReportFrequencyString}, {"Cols", cols}, {"Rows", rows}};
         return root;
     }
 
@@ -531,7 +645,7 @@ namespace ResultsFramework {
     {
 
         json root = getJSON();
-        if (ReportFrequency == "Detailed-HVAC") {
+        if (ReportFrequencyString == "Detailed-HVAC") {
             if (outputJSON) {
                 FileSystem::writeFile<FileSystem::FileTypes::JSON>(jsonOutputFilePaths.outputTSHvacJsonFilePath, root);
             }
@@ -541,7 +655,7 @@ namespace ResultsFramework {
             if (outputMsgPack) {
                 FileSystem::writeFile<FileSystem::FileTypes::MsgPack>(jsonOutputFilePaths.outputTSHvacMsgPackFilePath, root);
             }
-        } else if (ReportFrequency == "Detailed-Zone") {
+        } else if (ReportFrequencyString == "Detailed-Zone") {
             if (outputJSON) {
                 FileSystem::writeFile<FileSystem::FileTypes::JSON>(jsonOutputFilePaths.outputTSZoneJsonFilePath, root);
             }
@@ -551,7 +665,7 @@ namespace ResultsFramework {
             if (outputMsgPack) {
                 FileSystem::writeFile<FileSystem::FileTypes::MsgPack>(jsonOutputFilePaths.outputTSZoneMsgPackFilePath, root);
             }
-        } else if (ReportFrequency == "TimeStep") {
+        } else if (ReportFrequencyString == "TimeStep") {
             if (outputJSON) {
                 FileSystem::writeFile<FileSystem::FileTypes::JSON>(jsonOutputFilePaths.outputTSJsonFilePath, root);
             }
@@ -561,7 +675,7 @@ namespace ResultsFramework {
             if (outputMsgPack) {
                 FileSystem::writeFile<FileSystem::FileTypes::MsgPack>(jsonOutputFilePaths.outputTSMsgPackFilePath, root);
             }
-        } else if (ReportFrequency == "Daily") {
+        } else if (ReportFrequencyString == "Daily") {
             if (outputJSON) {
                 FileSystem::writeFile<FileSystem::FileTypes::JSON>(jsonOutputFilePaths.outputDYJsonFilePath, root);
             }
@@ -571,7 +685,7 @@ namespace ResultsFramework {
             if (outputMsgPack) {
                 FileSystem::writeFile<FileSystem::FileTypes::MsgPack>(jsonOutputFilePaths.outputDYMsgPackFilePath, root);
             }
-        } else if (ReportFrequency == "Hourly") {
+        } else if (ReportFrequencyString == "Hourly") {
             if (outputJSON) {
                 FileSystem::writeFile<FileSystem::FileTypes::JSON>(jsonOutputFilePaths.outputHRJsonFilePath, root);
             }
@@ -581,7 +695,7 @@ namespace ResultsFramework {
             if (outputMsgPack) {
                 FileSystem::writeFile<FileSystem::FileTypes::MsgPack>(jsonOutputFilePaths.outputHRMsgPackFilePath, root);
             }
-        } else if (ReportFrequency == "Monthly") {
+        } else if (ReportFrequencyString == "Monthly") {
             if (outputJSON) {
                 FileSystem::writeFile<FileSystem::FileTypes::JSON>(jsonOutputFilePaths.outputMNJsonFilePath, root);
             }
@@ -591,7 +705,7 @@ namespace ResultsFramework {
             if (outputMsgPack) {
                 FileSystem::writeFile<FileSystem::FileTypes::MsgPack>(jsonOutputFilePaths.outputMNMsgPackFilePath, root);
             }
-        } else if (ReportFrequency == "RunPeriod") {
+        } else if (ReportFrequencyString == "RunPeriod") {
             if (outputJSON) {
                 FileSystem::writeFile<FileSystem::FileTypes::JSON>(jsonOutputFilePaths.outputSMJsonFilePath, root);
             }
@@ -601,7 +715,7 @@ namespace ResultsFramework {
             if (outputMsgPack) {
                 FileSystem::writeFile<FileSystem::FileTypes::MsgPack>(jsonOutputFilePaths.outputSMMsgPackFilePath, root);
             }
-        } else if (ReportFrequency == "Yearly") {
+        } else if (ReportFrequencyString == "Yearly") {
             if (outputJSON) {
                 FileSystem::writeFile<FileSystem::FileTypes::JSON>(jsonOutputFilePaths.outputYRJsonFilePath, root);
             }
@@ -834,16 +948,16 @@ namespace ResultsFramework {
                                                                 {"11", "November"},
                                                                 {"12", "December"}});
         // 01/01 24:00:00
-        auto const month = datetime.substr(0, 2);
-        auto const pos = datetime.find(' ');
-        std::string time;
-        if (pos != std::string::npos) {
-            time = datetime.substr(pos);
-        }
-        if (time != " 24:00:00") {
-            ShowFatalError(state, "Monthly output variables should occur at the end of the day.");
-        }
-        datetime = months.find(month)->second;
+        //auto const month = datetime.substr(0, 2);
+        //auto const pos = datetime.find(' ');
+        //std::string time;
+        //if (pos != std::string::npos) {
+        //    time = datetime.substr(pos);
+        //}
+        //if (time != " 24:00:00") {
+        //    ShowFatalError(state, "Monthly output variables should occur at the end of the day.");
+        //}
+        //datetime = months.find(month)->second;
         return datetime;
     }
 
@@ -864,7 +978,7 @@ namespace ResultsFramework {
         for (auto &item : outputs) {
             std::string datetime = item.first;
             if (smallestReportingFrequency < OutputProcessor::ReportingFrequency::Monthly) {
-                datetime = datetime.replace(datetime.find(' '), 1, "  ");
+                //datetime = datetime.replace(datetime.find(' '), 1, "  ");
             } else {
                 convertToMonth(state, datetime);
             }
